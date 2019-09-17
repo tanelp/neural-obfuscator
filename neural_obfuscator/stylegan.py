@@ -258,7 +258,7 @@ class SynthNetwork(nn.Module):
         #self.torgb = ToRGBBlock(nf(res - 1))
         self.torgb = nn.Conv2d(nf(res - 1), 3, kernel_size=1)
 
-    def forward(self, dlatents, use_noise):
+    def forward(self, dlatents, use_noise=False):
         x = self.block_4x4(dlatents[:, :2], use_noise)
         if torch.isnan(x).any():
             print("Nan detected!")
