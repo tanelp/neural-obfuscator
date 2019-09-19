@@ -8,6 +8,8 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torchvision
 
+from .stylegan import StyleGAN
+
 class PerceptualLoss(nn.Module):
     def __init__(self, target):
         super(PerceptualLoss, self).__init__()
