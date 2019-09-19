@@ -142,7 +142,7 @@ class FaceAligner:
             raise NotImplementedError
         return output
 
-    def backproject_by_eyes(self, face, img, params):
+    def backproject_by_eyes(self, face, params):
         # 1. affine transform the face
         center = int(self.output_eyes_center_x * self.output_width), \
                  int(self.output_eyes_y * self.output_height)
@@ -152,6 +152,16 @@ class FaceAligner:
 
         #back_height, back_width = int(scale * face.shape[0]), int(scale * face.shape[1])
         back_height, back_width = 500, 500
+        face_back = cv2.warpAffine(face, M_back, (back_width, back_height), flags=cv2.INTER_CUBIC)
+        return face_back
+
+    def backproject_by_eyes_and_nose(self, face, params):
+        center_back = int(0.5 * face.shape[0]), int(0.5 * face.shape[1])
+        angle_back = -params["angle"]
+        scale_back = 1.0 / params["scale"]
+        M_back = cv2.getRotationMatrix2D(center_back, angle_back, scale_back)
+
+        back_height, back_width = 1024, 1024
         face_back = cv2.warpAffine(face, M_back, (back_width, back_height), flags=cv2.INTER_CUBIC)
         return face_back
 
@@ -184,9 +194,45 @@ class FaceAligner:
 
         return out_img
 
-    def backproject(self, face, img, params, method="eyes"):
+    def append_face_to_black_canvas_by_eyes_and_nose(self, face_back, img, eyes_center_dst, face_size):
+        # 2. move face to canvas of original image size and location
+        out_img = np.zeros_like(img)
+        #eyes_center_src = int(0.5 * face.shape[0]), int(0.5 * face.shape[1])
+        eyes_center_src = int(0.5 * face_size), int(0.5 * face_size)
+
+        radius_x_left = int(min(eyes_center_src[0], eyes_center_dst[0]))
+        radius_x_right = int(min(face_back.shape[1] - eyes_center_src[0], img.shape[1] - eyes_center_dst[0]))
+        radius_y_top = int(min(eyes_center_src[1], eyes_center_dst[1]))
+        radius_y_bottom = int(min(face_back.shape[0] - eyes_center_src[1], img.shape[0] - eyes_center_dst[1]))
+
+        xmin_src = eyes_center_src[0] - radius_x_left
+        ymin_src = eyes_center_src[1] - radius_y_top
+        xmax_src = eyes_center_src[0] + radius_x_right
+        ymax_src = eyes_center_src[1] + radius_y_bottom
+
+        xmin_dst = int(eyes_center_dst[0]) - radius_x_left
+        ymin_dst = int(eyes_center_dst[1]) - radius_y_top
+        xmax_dst = int(eyes_center_dst[0]) + radius_x_right
+        ymax_dst = int(eyes_center_dst[1]) + radius_y_bottom
+
+        out_img[ymin_dst:ymax_dst, xmin_dst:xmax_dst] = face_back[ymin_src:ymax_src, xmin_src:xmax_src]
+
+        return out_img
+
+    def append_face_to_black_canvas(self, face_back, img, eyes_center_dst, method="eyes", **kwargs):
         if method == "eyes":
-            output = self.backproject_by_eyes(face, img, params)
+            output = self.append_face_to_black_canvas_by_eyes(face_back, img, eyes_center_dst, **kwargs)
+        elif method == "eyes_nose":
+            output = self.append_face_to_black_canvas_by_eyes_and_nose(face_back, img, eyes_center_dst, **kwargs)
+        else:
+            raise NotImplementedError
+        return output
+
+    def backproject(self, face, params, method="eyes"):
+        if method == "eyes":
+            output = self.backproject_by_eyes(face, params)
+        elif method == "eyes_nose":
+            output = self.backproject_by_eyes_and_nose(face, params)
         else:
             raise NotImplementedError
         return output
