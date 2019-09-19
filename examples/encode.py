@@ -19,7 +19,7 @@ faces = detector.detect(img)
 # align the first face
 face = faces[0]
 landmarks = landmarks_model.predict(img, face)
-img_aligned, params = aligner.align(img, landmarks, output_size = 1024, method="eyes_nose")
+img_aligned, params = aligner.align(img, landmarks, method="eyes_nose")
 
 # get the encoding
 dlatents = encoder.encode(img_aligned, optim_image_size=256, num_steps=300)

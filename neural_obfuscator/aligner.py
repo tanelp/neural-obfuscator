@@ -39,7 +39,7 @@ class FaceAligner:
         factor = output_dist / current_dist
         return factor
 
-    def align_by_eyes(self, img, rect, landmarks):
+    def align_by_eyes(self, img, landmarks):
         left_eye_center = landmarks.get_left_eye_center()
         right_eye_center = landmarks.get_right_eye_center()
         eyes_center = tuple((left_eye_center + right_eye_center) // 2)
@@ -68,9 +68,76 @@ class FaceAligner:
 
         return output, params
 
-    def align(self, img, rect, landmarks, method="eyes"):
+    def align_by_eyes_and_nose(self, img, landmarks, output_size = 1024):
+        lm = np.array(landmarks.coords)
+        lm_chin          = lm[0  : 17]  # left-right
+        lm_eyebrow_left  = lm[17 : 22]  # left-right
+        lm_eyebrow_right = lm[22 : 27]  # left-right
+        lm_nose          = lm[27 : 31]  # top-down
+        lm_nostrils      = lm[31 : 36]  # top-down
+        lm_eye_left      = lm[36 : 42]  # left-clockwise
+        lm_eye_right     = lm[42 : 48]  # left-clockwise
+        lm_mouth_outer   = lm[48 : 60]  # left-clockwise
+        lm_mouth_inner   = lm[60 : 68]  # left-clockwise
+
+        # auxiliary vectors
+        eye_left     = np.mean(lm_eye_left, axis=0)
+        eye_right    = np.mean(lm_eye_right, axis=0)
+        eye_avg      = (eye_left + eye_right) * 0.5
+        eye_to_eye   = eye_right - eye_left
+        mouth_left   = lm_mouth_outer[0]
+        mouth_right  = lm_mouth_outer[6]
+        mouth_avg    = (mouth_left + mouth_right) * 0.5
+        eye_to_mouth = mouth_avg - eye_avg
+
+        # oriented crop rectangle
+        x = eye_to_eye - np.flipud(eye_to_mouth) * [-1, 1]
+        x /= np.hypot(*x)
+        x *= max(np.hypot(*eye_to_eye) * 2.0, np.hypot(*eye_to_mouth) * 1.8)
+        y = np.flipud(x) * [-1, 1]
+        c = eye_avg + eye_to_mouth * 0.1
+        quad = np.stack([c - x - y, c - x + y, c + x + y, c + x - y])
+        qsize = np.hypot(*x) * 2
+
+        # get rotation angle
+        dy = x[1]
+        dx = x[0]
+        angle = np.degrees(np.arctan2(dy, dx))
+
+        # get scaling factor
+        desired_dist = output_size
+        current_dist = 2 * np.sqrt(x[0]**2 + x[1]**2)
+        scale_factor = desired_dist / current_dist
+
+        # center
+        center = eye_avg + eye_to_mouth * 0.1
+        center = tuple(center)
+
+        M = cv2.getRotationMatrix2D(center, angle, scale_factor)
+
+        # translate
+        tx = output_size / 2.0 - center[0]
+        ty = output_size / 2.0 - center[1]
+        M[0, 2] += tx
+        M[1, 2] += ty
+
+        # apply the transformation
+        output = cv2.warpAffine(img, M, (output_size, output_size), flags=cv2.INTER_CUBIC)
+
+        params = {
+            "center": center,
+            "angle": angle,
+            "scale": scale_factor,
+            "M": M,
+        }
+
+        return output, params
+
+    def align(self, img, landmarks, method="eyes"):
         if method == "eyes":
-            output = self.align_by_eyes(img, rect, landmarks)
+            output = self.align_by_eyes(img, landmarks)
+        elif method == "eyes_nose":
+            output = self.align_by_eyes_and_nose(img, landmarks)
         else:
             raise NotImplementedError
         return output
