@@ -54,7 +54,21 @@ class MappingNetwork(nn.Module):
 def instance_norm(x, epsilon=1e-8):
     assert len(x.shape) == 4 # NCHW
     x -= torch.mean(x, dim=[2, 3], keepdim=True)
-    x *= torch.rsqrt(torch.mean(torch.pow(x, 2), dim=[2, 3], keepdim=True) + epsilon)
+    x = x * torch.rsqrt(torch.mean(torch.pow(x, 2), dim=[2, 3], keepdim=True) + epsilon)
+    return x
+
+def upscale2d(x, factor=2):
+    assert len(x.shape) == 4
+    assert isinstance(factor, int) and factor >= 1
+
+    # early exit
+    if factor==1:
+        return x
+
+    s = x.shape
+    x = x.view(-1, s[1], s[2], 1, s[3], 1)
+    x = x.repeat(1, 1, 1, factor, 1, factor)
+    x = x.view(-1, s[1], s[2] * factor, s[3] * factor)
     return x
 
 def blur2d(x, f=[1, 2, 1], normalize=True, flip=False, stride=1):
@@ -79,20 +93,29 @@ def blur2d(x, f=[1, 2, 1], normalize=True, flip=False, stride=1):
     x = F.conv2d(x, f, groups=num_channels, padding=1)
     return x
 
+class Blur2D(nn.Module):
+    def __init__(self, num_channels, f=[1, 2, 1], normalize=True, flip=False, stride=1):
+        super(Blur2D, self).__init__()
 
-def upscale2d(x, factor=2):
-    assert len(x.shape) == 4
-    assert isinstance(factor, int) and factor >= 1
+        self.num_channels = num_channels
+        f = np.array(f, dtype=np.float32)
+        if len(f.shape) == 1:
+            f = f[:, np.newaxis] * f[np.newaxis, :]
+        assert len(f.shape) == 2
+        if normalize:
+            f /= np.sum(f)
+        if flip:
+            f = f[::-1, ::-1]
+        f = f[np.newaxis, np.newaxis, :, :]
 
-    # early exit
-    if factor==1:
+        f = torch.from_numpy(f)
+        f = f.repeat(num_channels, 1, 1, 1)
+        #self.f = f
+        self.register_buffer("f", f)
+
+    def forward(self, x):
+        x = F.conv2d(x, self.f, groups=self.num_channels, padding=1)
         return x
-
-    s = x.shape
-    x = x.view(-1, s[1], s[2], 1, s[3], 1)
-    x = x.repeat(1, 1, 1, factor, 1, factor)
-    x = x.view(-1, s[1], s[2] * factor, s[3] * factor)
-    return x
 
 class StyleMod(nn.Module):
     def __init__(self, channels_in, channels_out):
@@ -209,6 +232,7 @@ class SynthBlock(nn.Module):
         super(SynthBlock, self).__init__()
 
         self.conv0 = UpscaleConv2d(input_channels, output_channels, kernel_size=3)
+        self.blur2d = Blur2D(output_channels)
         self.conv0_epilogue = LayerEpilogue(dlatent_channels, output_channels, height, width)
         self.conv1 = nn.Conv2d(output_channels, output_channels, kernel_size=3, padding=1, bias=False)
         self.conv1_epilogue = LayerEpilogue(dlatent_channels, output_channels, height, width)
@@ -216,7 +240,7 @@ class SynthBlock(nn.Module):
     def forward(self, x, dlatent, randomize_noise):
         assert dlatent.shape[1] == 2
         x = self.conv0(x)
-        x = blur2d(x)
+        x = self.blur2d(x)
         x = self.conv0_epilogue(x, dlatent[:, 0], randomize_noise)
         x = self.conv1(x)
         x = self.conv1_epilogue(x, dlatent[:, 1], randomize_noise)
@@ -302,7 +326,7 @@ class StyleGAN(nn.Module):
         path = os.path.expanduser(os.path.join("~", "neural_obfuscator", fname))
         if not os.path.exists(path):
             download_file_from_gdrive(weights_data["url"], path)
-        self.load_state_dict(torch.load(path))
+        self.load_state_dict(torch.load(path), strict=False)
 
     def forward(self, latents, use_noise=False, postprocess=True):
         if isinstance(latents, np.ndarray):
