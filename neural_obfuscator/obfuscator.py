@@ -48,7 +48,7 @@ class Obfuscator:
                 aligned_face, params = self.aligner.align(img, landmarks)
                 obfuscated_face = self.pixelate(aligned_face)
                 obfuscated_face_back = self.aligner.backproject(obfuscated_face, params)
-                obfuscated_face_canvas = self.aligner.append_face_to_black_canvas(obfuscated_face, params["center"])
+                obfuscated_face_canvas = self.aligner.append_face_to_black_canvas(obfuscated_face, img, params["center"])
                 face_mask = self.aligner.get_mask(landmarks, img.shape[0], img.shape[1])
                 img = self.merge(img, obfuscated_face_canvas, face_mask)
             elif self.method == "swap":
