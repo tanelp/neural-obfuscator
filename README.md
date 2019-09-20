@@ -1,6 +1,6 @@
 # neural-obfuscator
 
-A library for anonymizing the identities in an image by swapping faces to the ones that have never existed before. 
+A library for anonymizing the identities in an image by swapping faces to the ones that have never existed before.
 
 # Installation
 
@@ -24,7 +24,7 @@ python setup.py install
 
 ## Pixelating the face
 
-![]()
+![](assets/pixelated.png)
 
 ```python
 import cv2
@@ -38,7 +38,7 @@ no.show_image(img_gdpr)
 
 ## Swapping to a random face
 
-![]()
+![](assets/swap.png)
 
 ```python
 import cv2
@@ -54,7 +54,7 @@ no.show_image(img_gdpr)
 
 The repository includes a PyTorch implementation of StyleGAN.
 
-![]()
+![](assets/synth.png)
 
 ```python
 import neural_obfuscator as no
