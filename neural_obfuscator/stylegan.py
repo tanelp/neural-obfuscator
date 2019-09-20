@@ -43,7 +43,7 @@ class MappingNetwork(nn.Module):
         x = self.net(x)
 
         if self.dlatent_broadcast is not None:
-            x = x[None, :, :] # add a dimension
+            x = x.unsqueeze(1) # add a dimension
             x = x.repeat(1, self.dlatent_broadcast, 1)
 
         return x
