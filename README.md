@@ -1,6 +1,6 @@
 # neural-obfuscator
 
-A library for anonymizing the identities in an image by swapping faces to the ones that have never existed before.
+A library for anonymizing identities in an image by swapping faces to the ones that have never existed before.
 
 # Installation
 
@@ -16,13 +16,12 @@ Then, move to the folder and run the install command:
 
 ```sh
 cd neural-obfuscator
-#pip install --editable .
-python setup.py install
+pip install --editable .
 ```
 
 # Usage
 
-## Pixelating the face
+## Pixelating a face
 
 ![](assets/pixelated.png)
 
@@ -66,3 +65,15 @@ imgs = model.forward(latents)
 
 no.show_image(imgs[0])
 ```
+
+## Encoding a face into StyleGAN's latent space
+
+![](assets/encode.png)
+
+```python
+landmarks = landmarks_model.predict(img, face)
+img_aligned, _ = aligner.align(img, landmarks, method="eyes_nose")
+dlatents = encoder.encode(img_aligned, optim_image_size=256, num_steps=300)
+```
+
+Check `examples/encode.py` for a full example.
