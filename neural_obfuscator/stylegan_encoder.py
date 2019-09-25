@@ -1,4 +1,5 @@
 import time
+import os
 
 import numpy as np
 import cv2
@@ -9,6 +10,7 @@ import torch.optim as optim
 import torchvision
 
 from .stylegan import StyleGAN
+from .utils import download_file_from_gdrive
 
 class PerceptualLoss(nn.Module):
     def __init__(self, target):
@@ -49,6 +51,7 @@ class TransformForVGG(nn.Module):
 class StyleGANEncoder:
     def __init__(self):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.encoder_model = None
 
     @staticmethod
     def _get_input_optimizer(dlatents):
@@ -146,17 +149,45 @@ class StyleGANEncoder:
 
         return dlatents
 
-    def encode(self, img, optim_image_size=256, num_steps=300):
+    @staticmethod
+    def _init_encoder_model():
+        model_ft = torchvision.models.resnet18()
+        num_features = model_ft.fc.in_features
+        model_ft.fc = nn.Linear(num_features, 512)
+        path = os.path.expanduser(os.path.join("~", "neural_obfuscator", "weights_full_epoch_4_loss_0.0314.pth"))
+        if not os.path.exists(path):
+            download_file_from_gdrive("https://drive.google.com/uc?id=1-cGn2Gmw-sL9N_CEEV0pw16AEhWmlqQU", path)
+        model_ft.load_state_dict(torch.load(path))
+        model_ft.eval()
+        return model_ft
+
+    def _init_dlatents(self, method="avg", img=None):
+        if method == "avg":
+            return DLATENT_MEAN
+        elif method == "net":
+            if self.encoder_model is None:
+                self.encoder_model = self._init_encoder_model().to(self.device)
+            print("Predicting initial dlatents...")
+            # img: chw, rgb, [0, 1]
+            # model inputs: nchw, rgb, [-1, 1]
+            inputs = img.clone()
+            image_size = 224
+            inputs = F.upsample(inputs, size=image_size, mode="bilinear")
+            inputs = inputs * 2 - 1
+            return self.encoder_model(inputs).cpu().data.numpy()[0]
+
+    def encode(self, img, optim_image_size=256, num_steps=300, method="avg"):
         # set up input image
         # vgg_model input: mini-batches of 3-channel RGB images of shape (3 x H x W)
-        img_real = cv2.resize(img, (optim_image_size, optim_image_size), interpolation = cv2.INTER_AREA)
-        img_real = img_real[:, :, ::-1].transpose(2, 0, 1)
-        img_real = img_real.astype(np.float32) / 255.0
+        img_real = cv2.resize(img, (optim_image_size, optim_image_size), interpolation = cv2.INTER_AREA) # hwc, bgr
+        img_real = img_real[:, :, ::-1].transpose(2, 0, 1) #  chw, rgb
+        img_real = img_real.astype(np.float32) / 255.0 # [0, 1]
         img_real = np.expand_dims(img_real, axis=0)
         img_real = torch.from_numpy(img_real).to(self.device)
 
         # run encoding
-        dlatents = self._run_encoding(img_real, image_size=optim_image_size, num_steps=num_steps, default_dlatents=DLATENT_MEAN)
+        dlatents = self._init_dlatents(method=method, img=img_real)
+        dlatents = self._run_encoding(img_real, image_size=optim_image_size, num_steps=num_steps, default_dlatents=dlatents)
         return dlatents
 
 
