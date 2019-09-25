@@ -70,7 +70,7 @@ class Obfuscator:
                 obfuscated_face_back = self.aligner.backproject(obfuscated_face, params, method="eyes_nose")
                 obfuscated_face_canvas = self.aligner.append_face_to_black_canvas(obfuscated_face_back, img, params["center"], method="eyes_nose", face_size=aligned_face.shape[0])
                 face_mask = self.aligner.get_mask(landmarks, img.shape[0], img.shape[1])
-                img = cv2.seamlessClone(obfuscated_face_canvas, img, face_mask*255, (face.center().x, face.center().y), cv2.NORMAL_CLONE)
+                img = cv2.seamlessClone(obfuscated_face_canvas, img, face_mask*255, (face.center().x, int(face.center().y * 1.03)), cv2.NORMAL_CLONE)
             else:
                 raise NotImplementedError
         return img
