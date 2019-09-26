@@ -26,8 +26,8 @@ class Normalization(nn.Module):
         super(Normalization, self).__init__()
         # .view the mean and std to make them [C x 1 x 1] so that they can
         # directly work with image Tensor of shape [B x C x H x W].
-        self.mean = torch.tensor(mean).view(-1, 1, 1)
-        self.std = torch.tensor(std).view(-1, 1, 1)
+        self.mean = mean.view(-1, 1, 1)
+        self.std = std.view(-1, 1, 1)
 
     def forward(self, img):
         # normalize img
@@ -64,8 +64,8 @@ class StyleGANEncoder:
 
         # vgg model
         vgg_model = torchvision.models.vgg19(pretrained=True).features.to(self.device).eval()
-        vgg_norm_mean = [0.485, 0.456, 0.406]
-        vgg_norm_std = [0.229, 0.224, 0.225]
+        vgg_norm_mean = torch.tensor([0.485, 0.456, 0.406]).to(device)
+        vgg_norm_std = torch.tensor([0.229, 0.224, 0.225]).to(device)
 
         # normalization module
         normalization = Normalization(vgg_norm_mean, vgg_norm_std).to(self.device)
