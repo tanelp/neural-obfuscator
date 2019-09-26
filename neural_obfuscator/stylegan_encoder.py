@@ -64,8 +64,8 @@ class StyleGANEncoder:
 
         # vgg model
         vgg_model = torchvision.models.vgg19(pretrained=True).features.to(self.device).eval()
-        vgg_norm_mean = torch.tensor([0.485, 0.456, 0.406]).to(self.device)
-        vgg_norm_std = torch.tensor([0.229, 0.224, 0.225]).to(self.device)
+        vgg_norm_mean = [0.485, 0.456, 0.406]
+        vgg_norm_std = [0.229, 0.224, 0.225]
 
         # normalization module
         normalization = Normalization(vgg_norm_mean, vgg_norm_std).to(self.device)
