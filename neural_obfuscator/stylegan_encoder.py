@@ -26,8 +26,8 @@ class Normalization(nn.Module):
         super(Normalization, self).__init__()
         # .view the mean and std to make them [C x 1 x 1] so that they can
         # directly work with image Tensor of shape [B x C x H x W].
-        self.mean = mean.view(-1, 1, 1)
-        self.std = std.view(-1, 1, 1)
+        self.mean = mean.clone().view(-1, 1, 1)
+        self.std = std.clone().view(-1, 1, 1)
 
     def forward(self, img):
         # normalize img
