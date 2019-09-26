@@ -53,7 +53,7 @@ class Obfuscator:
                 img = self.merge(img, obfuscated_face_canvas, face_mask)
             elif self.method == "swap":
                 aligned_face, params = self.aligner.align(img, landmarks, method="eyes_nose")
-                dlatents_encoded = self.encoder.encode(aligned_face, optim_image_size=256, num_steps=300)
+                dlatents_encoded = self.encoder.encode(aligned_face, optim_image_size=256, num_steps=30)
                 dlatents_encoded = dlatents_encoded.cpu()
 
                 latents = np.random.randn(1, 512).astype(np.float32)
