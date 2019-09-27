@@ -154,9 +154,9 @@ class StyleGANEncoder:
         model_ft = torchvision.models.resnet18()
         num_features = model_ft.fc.in_features
         model_ft.fc = nn.Linear(num_features, 512)
-        path = os.path.expanduser(os.path.join("~", "neural_obfuscator", "weights_full_epoch_4_loss_0.0314.pth"))
+        path = os.path.expanduser(os.path.join("~", "neural_obfuscator", "weights_full_epoch_30_loss_0.0191.pth"))
         if not os.path.exists(path):
-            download_file_from_gdrive("https://drive.google.com/uc?id=1-cGn2Gmw-sL9N_CEEV0pw16AEhWmlqQU", path)
+            download_file_from_gdrive("https://drive.google.com/uc?id=1-PeWe9lwYLBDbbDS6eNM57MLbWxR7Chj", path)
         model_ft.load_state_dict(torch.load(path))
         model_ft.eval()
         return model_ft
