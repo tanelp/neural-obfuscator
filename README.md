@@ -66,6 +66,8 @@ imgs = model.forward(latents)
 no.show_image(imgs[0])
 ```
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/18xGyjKZGitcAk0seR-d1J1SHQTOQ2QFf)
+
 ## Encoding a face into StyleGAN's latent space
 
 ![](assets/encode.png)
