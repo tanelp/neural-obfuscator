@@ -187,7 +187,10 @@ class StyleGANEncoder:
 
         # run encoding
         dlatents = self._init_dlatents(method=method, img=img_real)
-        dlatents = self._run_encoding(img_real, image_size=optim_image_size, num_steps=num_steps, default_dlatents=dlatents)
+        if num_steps > 0:
+            dlatents = self._run_encoding(img_real, image_size=optim_image_size, num_steps=num_steps, default_dlatents=dlatents)
+        else:
+            dlatents = torch.from_numpy(dlatents).unsqueeze(0).unsqueeze(0).expand(-1, 18, -1).to(self.device)
         return dlatents
 
 
