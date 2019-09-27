@@ -2,13 +2,20 @@ import os
 import bz2
 import urllib
 import html
-import requests
 
+import requests
+import numpy as np
 import matplotlib.pyplot as plt
 
 def show_image(img):
     plt.imshow(img[:, :, ::-1])
     plt.show()
+
+def url_to_img(url):
+	req = urllib.request.urlopen(url)
+	img = np.asarray(bytearray(req.read()), dtype=np.uint8)
+	img = cv2.imdecode(img, cv2.IMREAD_COLOR)
+	return img
 
 def unpack_bz2(src_path):
     data = bz2.BZ2File(src_path).read()
