@@ -40,7 +40,7 @@ class TransformForVGG(nn.Module):
 
     def forward(self, imgs):
         # resize
-        imgs = F.interpolate(imgs, size=self.image_size, mode="bilinear")
+        imgs = F.interpolate(imgs, size=self.image_size, mode="bilinear", align_corners=False)
 
         # scale from [-1, 1] -> [0, 1]
         imgs += 1
@@ -172,7 +172,7 @@ class StyleGANEncoder:
             # model inputs: nchw, rgb, [-1, 1]
             inputs = img.clone()
             image_size = 224
-            inputs = F.interpolate(inputs, size=image_size, mode="bilinear")
+            inputs = F.interpolate(inputs, size=image_size, mode="bilinear", align_corners=False)
             inputs = inputs * 2 - 1
             return self.encoder_model(inputs).cpu().data.numpy()[0]
 
