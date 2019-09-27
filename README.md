@@ -49,6 +49,8 @@ img_gdpr = model.obfuscate(img)
 no.show_image(img_gdpr)
 ```
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/18xGyjKZGitcAk0seR-d1J1SHQTOQ2QFf)
+
 ## Synthesysing a face with a StyleGAN model
 
 The repository includes a PyTorch implementation of StyleGAN.
@@ -65,8 +67,6 @@ imgs = model.forward(latents)
 
 no.show_image(imgs[0])
 ```
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/18xGyjKZGitcAk0seR-d1J1SHQTOQ2QFf)
 
 ## Encoding a face into StyleGAN's latent space
 
