@@ -6,6 +6,7 @@ from .detector import DlibFaceDetector
 from .aligner import FaceAligner
 from .stylegan import StyleGAN
 from .stylegan_encoder import StyleGANEncoder
+from . import directions
 
 class Obfuscator:
     def __init__(self, detector_name = "dlib", aligner_name="default", method="pixelate"):
@@ -40,7 +41,7 @@ class Obfuscator:
         out = img1 * (1 - mask) + img2 * mask
         return out
 
-    def obfuscate(self, img, num_steps=30):
+    def obfuscate(self, img, num_steps=30, swap_to_random=True, direction=None, distance=0.0):
         faces = self.detector.detect(img)
         for face in faces:
             landmarks = self.aligner.get_landmarks(img, face)
@@ -56,12 +57,23 @@ class Obfuscator:
                 dlatents_encoded = self.encoder.encode(aligned_face, optim_image_size=256, num_steps=num_steps)
                 dlatents_encoded = dlatents_encoded.cpu()
 
-                latents = np.random.randn(1, 512).astype(np.float32)
-                latents = torch.from_numpy(latents)
-                dlatents_random = self.decoder.mapping(latents)
-
                 dlatents = dlatents_encoded.clone()
-                dlatents[:, 4:] = dlatents_random[:, 4:]
+                if swap_to_random:
+                    latents = np.random.randn(1, 512).astype(np.float32)
+                    latents = torch.from_numpy(latents)
+                    dlatents_random = self.decoder.mapping(latents)
+                    dlatents[:, 4:] = dlatents_random[:, 4:]
+
+                if direction is not None:
+                    if direction == "age":
+                        boundary = directions.age
+                    elif direction == "eyeglasses":
+                        boundary = directions.eyeglasses
+                    elif direction == "smile":
+                        boundary = directions.smile
+                    else:
+                        raise ValueError("No such direction: {}".format(direction))
+                    dlatents += distance * torch.from_numpy(boundary.reshape(1, 1, -1))
 
                 imgs = self.decoder.synthesis(dlatents)
                 imgs = self.decoder.postprocess(imgs)
